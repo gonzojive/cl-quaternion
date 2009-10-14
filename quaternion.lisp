@@ -202,6 +202,25 @@ DO:    A Generic multiplication with numbers or quaternions.
                         ((complexp x) (quaternion (realpart x) (imagpart x)))
                         (t (quaternion x)))) args)))));;*
 
+;; matrix representation
+(defun qmatrix (quat)
+  "Returns a 3x3 matrix representation of the rotation"
+  (bind-quaternion (a b c d)
+      quat
+    (let ((aa (* a a))  (bb (* b b))  (cc (* c c))  (dd (* d d))
+	  (ab (* a b))
+	  (cd (* c d))
+	  (bc (* b c))
+	  (ad (* a d))
+	  (bd (* b d))
+	  (ac (* a c)))
+
+    (make-array '(3 3)
+		:initial-contents
+		(list (list (+ aa bb (- cc) (- dd))    (+ (* 2 bc) (* 2 ad))    (- (* 2 bd) (* 2 ac)))
+		      (list (- (* 2 bc) (* 2 ad))      (+ aa (- bb) cc (- dd))  (+ (* 2 cd) (* 2 ab)))
+		      (list (+ (* 2 bd) (* 2 ac))      (- (* 2 cd) (* 2 ab))    (+ aa (- bb) (- cc) dd)))))))
+
 ;;; experimental / nonfunctional
 
 (defun qdot (q1 q2)
@@ -210,7 +229,7 @@ DO:    A Generic multiplication with numbers or quaternions.
     (bind-quaternion (r2 i2 j2 k2)  q2
       (+ (* r1 r2) (* i1 i2) (* j1 j2) (* k1 k2)))))
 
-(defun qslerp(q1 q2 t)
+(defun qslerp(q1 q2 time)
   "Assumes that q1 and q2 are normalized quaternions that represent rotations.  Computes
 an inerpolated rotation between the two, where 0 < T < 1 and T is the degree to which
 the interpolation should be at q2 vs. q1."
