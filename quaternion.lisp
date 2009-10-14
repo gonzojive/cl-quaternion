@@ -45,13 +45,33 @@
   "Returns T if OBJ is a quaternion, NIL otherwise."
   (typep obj 'quaternion))
 
+(defmacro bind-quaternion ((r i j k) quat &body body)
+  "Binds the real, i, j, and k components of the given quaternion and then evaluates body.
+
+R I J K -- not evaluated, variable names used to bind the quat components
+
+quat -- evaluated, quaternion to bind
+
+body -- forms evaluated after binding R I J K."
+  (let ((q (gensym "quat"))
+	(ri (gensym "ri"))
+	(jk (gensym "jk")))
+    `(multiple-value-bind (,r ,i ,j ,k)
+	 (let* ((,q ,quat)
+		(,ri (quaternion-ri ,q))
+		(,jk (quaternion-jk ,q)))
+	   (values
+	     (realpart ,ri)
+	     (imagpart ,ri)
+	     (realpart ,jk)
+	     (imagpart ,jk)))
+       ,@body)))
+
 (defmethod print-object ((self quaternion) stream)
-  (format stream "#Q(~A ~A ~A ~A)"
-          (realpart (quaternion-ri self))
-          (imagpart (quaternion-ri self))
-          (realpart (quaternion-jk self))
-          (imagpart (quaternion-jk self)))
-  stream);;print-object
+  (bind-quaternion (r i j k)
+      self
+    (format stream "#Q(~A ~A ~A ~A)" r i j k))
+  stream)
 
 ;; TODO: Add a read syntax for #Q(r i j k)
 
@@ -82,28 +102,6 @@
                   (common-lisp:* jk (conjugate
                                      (quaternion-ri (car args)))))))
           ((null args) (make-quaternion :ri  ri :jk jk)))));;q*
-
-(defmacro bind-quaternion ((r i j k) quat &body body)
-  "Binds the real, i, j, and k components of the given quaternion and then evaluates body.
-
-R I J K -- not evaluated, variable names used to bind the quat components
-
-quat -- evaluated, quaternion to bind
-
-body -- forms evaluated after binding R I J K."
-  (let ((q (gensym "quat"))
-	(ri (gensym "ri"))
-	(jk (gensym "jk")))
-    `(multiple-value-bind (,r ,i ,j ,k)
-	 (let* ((,q ,quat)
-		(,ri (quaternion-ri ,q))
-		(,jk (quaternion-jk ,q)))
-	   (values
-	     (realpart ,ri)
-	     (imagpart ,ri)
-	     (realpart ,jk)
-	     (imagpart ,jk)))
-       ,@body)))
 
 (defun qmagnitude-squared (q)
   "Returns the magnitude of the quaternion squared (sum of squared components)."
@@ -204,3 +202,16 @@ DO:    A Generic multiplication with numbers or quaternions.
                         ((complexp x) (quaternion (realpart x) (imagpart x)))
                         (t (quaternion x)))) args)))));;*
 
+;;; experimental / nonfunctional
+
+(defun qdot (q1 q2)
+  "Dot product of multiple quaternions."
+  (bind-quaternion (r1 i1 j1 k1)  q1
+    (bind-quaternion (r2 i2 j2 k2)  q2
+      (+ (* r1 r2) (* i1 i2) (* j1 j2) (* k1 k2)))))
+
+(defun qslerp(q1 q2 t)
+  "Assumes that q1 and q2 are normalized quaternions that represent rotations.  Computes
+an inerpolated rotation between the two, where 0 < T < 1 and T is the degree to which
+the interpolation should be at q2 vs. q1."
+  nil)
