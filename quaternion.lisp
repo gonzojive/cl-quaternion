@@ -154,9 +154,10 @@ returns a VECTOR rotated about AXIS by ANGLE in a counter-clockwise direction."
   (let ((q-rotation (quaternion-from-axis-angle axis angle))
 	(q-vector (quaternion 0 (elt vector 0) (elt vector 1) (elt vector 2))))
     (let ((q-result (q* q-rotation q-vector (qconjugate q-rotation))))
-      (vector (imagpart (quaternion-ri q-result))
-	      (realpart (quaternion-jk q-result))
-	      (imagpart (quaternion-jk q-result))))))
+      (bind-quaternion (r i j k)
+	  q-result
+	(declare (ignore r))
+	(vector i j k)))))
 
 ;; example usage:
 ;; CL-USER> (defun d2r (d)  (* pi (/ d 180.0)))
@@ -172,11 +173,11 @@ DO:    A Generic addition with numbers or quaternions.
     ((every #'numberp args)
      (apply #'cl:+ args))
     ((every #'quaternionp args)
-     (apply (function q+) args))
+     (apply #'q+ args))
     ((some (lambda (x) (not (or (numberp x) (quaternionp x)))) args)
-     (ERROR "Incompatible types for '+': ~S"
-            (MAPCAR (FUNCTION TYPE-OF) ARGS)))
-    (t (apply (function q+)
+     (error "Incompatible types for '+': ~S"
+            (mapcar #'type-of args)))
+    (t (apply #'q+
               (mapcar
                (lambda (x) (cond
                         ((quaternionp x) x)
@@ -187,15 +188,15 @@ DO:    A Generic addition with numbers or quaternions.
   "
 DO:    A Generic multiplication with numbers or quaternions.
 "
-  (COND
-    ((EVERY (FUNCTION NUMBERP) ARGS)
-     (APPLY (FUNCTION COMMON-LISP:*) ARGS))
-    ((EVERY (FUNCTION QUATERNIONP) ARGS)
-     (apply (function q*) args))
+  (cond
+    ((every #'numberp args)
+     (apply #'common-lisp:* args))
+    ((every #'quaternionp args)
+     (apply #'q* args))
     ((some (lambda (x) (not (or (numberp x) (quaternionp x)))) args)
-     (ERROR "Incompatible types for '*': ~S"
-            (MAPCAR (FUNCTION TYPE-OF) ARGS)))
-    (t (apply (function q*)
+     (error "Incompatible types for '*': ~S"
+            (mapcar #'type-of args)))
+    (t (apply #'q*
               (mapcar
                (lambda (x) (cond
                         ((quaternionp x) x)
